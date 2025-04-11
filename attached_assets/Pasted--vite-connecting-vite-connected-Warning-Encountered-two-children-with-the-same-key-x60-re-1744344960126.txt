@@ -1,0 +1,37 @@
+[vite] connecting...
+[vite] connected.
+Warning: Encountered two children with the same key, &#x60;rectangle-65-221-0&#x60;. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+    at g
+    at https://e68b03b5-2b0e-4929-a858-00797bab7620-00-3q76pu3zs3vp9.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/recharts.js?v=a8f52aa5:6113:25
+    at Animate2 (https://e68b03b5-2b0e-4929-a858-00797bab7620-00-3q76pu3zs3vp9.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/recharts.js?v=a8f52aa5:18597:5)
+    at g
+    at https://e68b03b5-2b0e-4929-a858-00797bab7620-00-3q76pu3zs3vp9.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/recharts.js?v=a8f52aa5:6113:25
+    at g
+    at https://e68b03b5-2b0e-4929-a858-00797bab7620-00-3q76pu3zs3vp9.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/recharts.js?v=a8f52aa5:6113:25
+    at Bar2 (https://e68b03b5-2b0e-4929-a858-00797bab7620-00-3q76pu3zs3vp9.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/recharts.js?v=a8f52aa5:24771:5)
+    at svg
+    at Surface (https://e68b03b5-2b0e-4929-a858-00797bab7620-00-3q76pu3zs3vp9.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/recharts.js?v=a8f52aa5:6052:25)
+    at div
+    at ChartLayoutContextProvider2 (https://e68b03b5-2b0e-4929-a858-00797bab7620-00-3q76pu3zs3vp9.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/recharts.js?v=a8f52aa5:25434:28)
+    at CategoricalChartWrapper2 (https://e68b03b5-2b0e-4929-a858-00797bab7620-00-3q76pu3zs3vp9.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/recharts.js?v=a8f52aa5:30715:7)
+    at CategoricalChart2
+    at div
+    at https://e68b03b5-2b0e-4929-a858-00797bab7620-00-3q76pu3zs3vp9.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/recharts.js?v=a8f52aa5:9256:21
+    at div
+    at div
+    at _c9 (https://e68b03b5-2b0e-4929-a858-00797bab7620-00-3q76pu3zs3vp9.janeway.replit.dev/src/components/ui/card.tsx:114:12)
+    at div
+    at _c (https://e68b03b5-2b0e-4929-a858-00797bab7620-00-3q76pu3zs3vp9.janeway.replit.dev/src/components/ui/card.tsx:20:11)
+    at div
+    at div
+    at div
+    at div
+    at Dashboard (https://e68b03b5-2b0e-4929-a858-00797bab7620-00-3q76pu3zs3vp9.janeway.replit.dev/src/pages/dashboard.tsx:27:62)
+    at Route (https://e68b03b5-2b0e-4929-a858-00797bab7620-00-3q76pu3zs3vp9.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=a8f52aa5:323:16)
+    at Switch (https://e68b03b5-2b0e-4929-a858-00797bab7620-00-3q76pu3zs3vp9.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=a8f52aa5:379:17)
+    at main
+    at div
+    at div
+    at Router (https://e68b03b5-2b0e-4929-a858-00797bab7620-00-3q76pu3zs3vp9.janeway.replit.dev/src/App.tsx?v=jFCs4f3utmARe3EVumln1:32:45)
+    at QueryClientProvider (https://e68b03b5-2b0e-4929-a858-00797bab7620-00-3q76pu3zs3vp9.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=a8f52aa5:2805:3)
+    at App
