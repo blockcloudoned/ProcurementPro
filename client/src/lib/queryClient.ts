@@ -16,7 +16,10 @@ export async function apiRequest<T>(
   let url: string;
   let body: unknown | undefined;
 
-  if (arguments.length === 1 || (arguments.length > 1 && typeof urlOrData !== 'string')) {
+  const argCount = urlOrData === undefined ? 1 : (data === undefined ? 2 : 3);
+  const isSecondArgString = typeof urlOrData === 'string';
+
+  if (argCount === 1 || (argCount > 1 && !isSecondArgString)) {
     // GET request with just URL or URL + data for query params
     method = 'GET';
     url = urlOrMethod;

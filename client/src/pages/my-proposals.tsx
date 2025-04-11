@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, TrashIcon, ArrowDownIcon, EyeIcon, PencilIcon } from "lucide-react";
+import { PlusIcon, TrashIcon, EyeIcon, PencilIcon } from "lucide-react";
+import { ExportProposalButton } from "@/components/export-proposal-button";
 import {
   Table,
   TableBody,
@@ -77,32 +78,8 @@ const MyProposals = () => {
     }
   });
 
-  const exportProposalMutation = useMutation({
-    mutationFn: async ({ id, format }: { id: number, format: string }) => {
-      const response = await apiRequest("POST", `/api/proposals/${id}/export?format=${format}`, null);
-      return response.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Proposal exported",
-        description: data.message,
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error exporting proposal",
-        description: error.message || "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
-    }
-  });
-
   const handleDeleteProposal = (id: number) => {
     deleteProposalMutation.mutate(id);
-  };
-
-  const handleExportProposal = (id: number, format: string) => {
-    exportProposalMutation.mutate({ id, format });
   };
 
   const getClientName = (clientId: number) => {
@@ -221,13 +198,15 @@ const MyProposals = () => {
                               <span>Edit</span>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onSelect={() => handleExportProposal(proposal.id, 'pdf')}>
-                              <ArrowDownIcon className="mr-2 h-4 w-4" />
-                              <span>Export as PDF</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => handleExportProposal(proposal.id, 'docx')}>
-                              <ArrowDownIcon className="mr-2 h-4 w-4" />
-                              <span>Export as DOCX</span>
+                            <DropdownMenuItem asChild>
+                              <div className="px-2 py-1.5">
+                                <ExportProposalButton 
+                                  proposalId={proposal.id}
+                                  proposalTitle={proposal.title}
+                                  variant="ghost"
+                                  size="sm"
+                                />
+                              </div>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem

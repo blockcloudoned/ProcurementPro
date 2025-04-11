@@ -311,22 +311,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/proposals/:id/export", async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
-      const format = req.query.format || "pdf";
+      const format = (req.query.format || "pdf") as string;
       const proposal = await storage.getProposal(id);
       
       if (!proposal) {
         return res.status(404).json({ message: "Proposal not found" });
       }
       
-      // In a real implementation, we would generate the document here
-      // For now, we'll just return a success message
-      res.json({
-        success: true,
-        format: format,
-        message: `Proposal ${proposal.title} has been exported as ${format}`
+      // Get client and template data for the proposal
+      const client = proposal.clientId ? await storage.getClient(proposal.clientId) : undefined;
+      const template = proposal.templateId ? await storage.getTemplate(proposal.templateId) : undefined;
+      
+      // Import dynamically to avoid issues with puppeteer in global scope
+      const { exportProposal, ExportFormat } = await import('./document-export');
+      
+      // Validate the format
+      if (!Object.values(ExportFormat).includes(format as any)) {
+        return res.status(400).json({ message: `Unsupported format: ${format}. Supported formats: ${Object.values(ExportFormat).join(', ')}` });
+      }
+      
+      // Generate the document
+      const result = await exportProposal(
+        proposal, 
+        format as any,
+        client,
+        template
+      );
+      
+      // Set response headers for file download
+      res.setHeader('Content-Type', result.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+      res.setHeader('Content-Length', result.buffer.length);
+      
+      // Send the file
+      res.send(result.buffer);
+      
+      // Track user activity for document export
+      const userId = 1; // In a real app, this would be the authenticated user ID
+      await storage.trackUserActivity({
+        userId,
+        activityType: 'document_export',
+        entityId: proposal.id,
+        entityType: 'proposal',
+        data: { proposalId: proposal.id, format, title: proposal.title }
       });
+      
     } catch (error) {
-      res.status(500).json({ message: "Failed to export proposal" });
+      console.error("Export error:", error);
+      res.status(500).json({ message: "Failed to export proposal", error: (error as Error).message });
     }
   });
   

@@ -1,82 +1,106 @@
 import React from 'react';
-import {
-  Award,
-  Trophy,
-  Star,
-  Users,
-  Network,
-  CheckCircle,
-  DollarSign,
-  LucideIcon,
+import { 
+  Award, 
+  Star, 
+  Zap, 
+  Target, 
+  CheckCircle2, 
+  Trophy, 
+  Medal,
+  Clock,
+  LucideIcon
 } from 'lucide-react';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge as UIBadge } from "@/components/ui/badge";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Progress } from "@/components/ui/progress";
+import { Badge as BadgeType } from '@/lib/achievement-service';
 
-import type { Badge } from "@/lib/achievement-service";
-
-const iconMap: Record<string, React.ElementType> = {
-  'award': Award,
-  'trophy': Trophy,
-  'star': Star,
-  'users': Users,
-  'network': Network,
-  'check-circle': CheckCircle,
-  'dollar-sign': DollarSign,
+// Map of icon names to Lucide components
+const iconMap: Record<string, LucideIcon> = {
+  award: Award,
+  star: Star,
+  zap: Zap,
+  target: Target,
+  check: CheckCircle2,
+  trophy: Trophy,
+  medal: Medal,
+  clock: Clock
 };
 
 interface AchievementBadgeProps {
-  badge: Badge;
+  badge: BadgeType;
   earned?: boolean;
   progress?: number;
 }
 
 export function AchievementBadge({ badge, earned = false, progress = 0 }: AchievementBadgeProps) {
-  const IconComponent = iconMap[badge.icon] || Award;
-  const progressPercentage = Math.min(100, Math.round((progress / badge.requiredCount) * 100));
+  // Default icon fallback
+  const IconComponent = iconMap[badge.icon.toLowerCase()] || Trophy;
+  
+  // Function to determine badge styles based on category
+  const getBadgeStyles = (category: string, earned: boolean) => {
+    const baseClasses = "flex flex-col items-center justify-center rounded-full p-3";
+    
+    if (!earned) {
+      return `${baseClasses} bg-gray-100 text-gray-400 opacity-60`;
+    }
+    
+    switch (category.toLowerCase()) {
+      case 'proposals':
+        return `${baseClasses} bg-blue-100 text-blue-600`;
+      case 'clients':
+        return `${baseClasses} bg-green-100 text-green-600`;
+      case 'exports':
+        return `${baseClasses} bg-purple-100 text-purple-600`;
+      case 'achievement':
+        return `${baseClasses} bg-yellow-100 text-yellow-600`;
+      default:
+        return `${baseClasses} bg-blue-100 text-blue-600`;
+    }
+  };
   
   return (
-    <Card className={`border-2 ${earned ? 'border-primary' : 'border-muted-foreground/20'}`}>
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-lg font-semibold">{badge.name}</CardTitle>
-          {earned && (
-            <UIBadge variant="default" className="bg-primary">
-              Earned
-            </UIBadge>
-          )}
-        </div>
-        <CardDescription>{badge.description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col items-center justify-center space-y-2">
-          <div className={`p-4 rounded-full ${earned ? 'bg-primary/20' : 'bg-muted'}`}>
-            <IconComponent 
-              className={`w-8 h-8 ${earned ? 'text-primary' : 'text-muted-foreground'}`} 
-            />
-          </div>
-          
-          {!earned && badge.requiredCount > 1 && (
-            <div className="w-full mt-4">
-              <div className="text-xs text-muted-foreground mb-1 flex justify-between">
-                <span>Progress: {progress} / {badge.requiredCount}</span>
-                <span>{progressPercentage}%</span>
-              </div>
-              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-primary" 
-                  style={{ width: `${progressPercentage}%` }}
-                />
-              </div>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex flex-col items-center m-2 relative">
+            <div className={getBadgeStyles(badge.category, earned)}>
+              <IconComponent className="h-8 w-8" />
             </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+            <div className="mt-2 text-sm font-medium text-center">
+              {badge.name}
+            </div>
+            {!earned && progress > 0 && progress < 100 && (
+              <div className="w-full mt-1">
+                <Progress value={progress} className="h-1" />
+                <div className="text-xs text-gray-500 text-center mt-1">
+                  {progress}%
+                </div>
+              </div>
+            )}
+            {earned && (
+              <div className="absolute -top-1 -right-1 bg-green-500 rounded-full p-1">
+                <CheckCircle2 className="h-3 w-3 text-white" />
+              </div>
+            )}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <div className="p-1">
+            <p className="font-semibold">{badge.name}</p>
+            <p className="text-sm">{badge.description}</p>
+            {!earned && badge.requiredCount > 0 && (
+              <p className="text-xs mt-1 text-gray-500">
+                Progress: {progress}% (Need {badge.requiredCount} to earn)
+              </p>
+            )}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
