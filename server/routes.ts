@@ -31,7 +31,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertClientSchema.parse(req.body);
       const client = await storage.createClient(validatedData);
-      res.status(201).json(client);
+      
+      // Track client creation activity for achievement badges
+      // Using a default user id of 1 for now - in a real app this would be the logged-in user
+      const userId = 1;
+      await storage.trackUserActivity({
+        userId,
+        activityType: 'client_management',
+        entityId: client.id,
+        entityType: 'client',
+        data: { clientId: client.id, companyName: client.companyName }
+      });
+      
+      // Check if any badges were earned from this activity
+      const earnedBadges = await storage.checkAchievements(userId, 'client_management');
+      
+      res.status(201).json({
+        client,
+        achievements: earnedBadges.length > 0 ? {
+          badges: earnedBadges,
+          message: 'Congratulations! You\'ve earned new achievement badges!'
+        } : null
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid client data", errors: error.errors });
@@ -147,7 +168,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertProposalSchema.parse(req.body);
       const proposal = await storage.createProposal(validatedData);
-      res.status(201).json(proposal);
+      
+      // Track proposal creation activity for achievement badges
+      // Using a default user id of 1 for now - in a real app this would be the logged-in user
+      const userId = 1;
+      await storage.trackUserActivity({
+        userId,
+        activityType: 'proposal_creation',
+        entityId: proposal.id,
+        entityType: 'proposal',
+        data: { proposalId: proposal.id, title: proposal.title }
+      });
+      
+      // If the proposal has an amount, track it for revenue achievements
+      if (proposal.amount) {
+        const amount = parseFloat(proposal.amount);
+        if (!isNaN(amount) && amount > 0) {
+          await storage.trackUserActivity({
+            userId,
+            activityType: 'revenue',
+            entityId: proposal.id,
+            entityType: 'proposal',
+            data: { proposalId: proposal.id, amount }
+          });
+        }
+      }
+      
+      // Check if any badges were earned from these activities
+      const proposalBadges = await storage.checkAchievements(userId, 'proposal_creation');
+      const revenueBadges = proposal.amount ? await storage.checkAchievements(userId, 'revenue') : [];
+      
+      // Combine all earned badges
+      const earnedBadges = [...proposalBadges, ...revenueBadges];
+      
+      res.status(201).json({
+        proposal,
+        achievements: earnedBadges.length > 0 ? {
+          badges: earnedBadges,
+          message: 'Congratulations! You\'ve earned new achievement badges!'
+        } : null
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid proposal data", errors: error.errors });
@@ -267,6 +327,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to export proposal" });
+    }
+  });
+  
+  // Achievement and badge endpoints
+  app.get("/api/badges", async (req: Request, res: Response) => {
+    try {
+      const category = req.query.category as string | undefined;
+      let badges;
+      
+      if (category) {
+        badges = await storage.getBadgesByCategory(category);
+      } else {
+        badges = await storage.getBadges();
+      }
+      
+      res.json(badges);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch badges" });
+    }
+  });
+  
+  app.get("/api/badges/:id", async (req: Request, res: Response) => {
+    try {
+      const badge = await storage.getBadge(Number(req.params.id));
+      if (!badge) {
+        return res.status(404).json({ message: "Badge not found" });
+      }
+      res.json(badge);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch badge" });
+    }
+  });
+  
+  app.get("/api/users/:userId/achievements", async (req: Request, res: Response) => {
+    try {
+      const userId = Number(req.params.userId);
+      const achievements = await storage.getUserAchievementWithBadges(userId);
+      res.json(achievements);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch user achievements" });
+    }
+  });
+  
+  app.get("/api/users/:userId/activities", async (req: Request, res: Response) => {
+    try {
+      const userId = Number(req.params.userId);
+      const activities = await storage.getUserActivities(userId);
+      res.json(activities);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch user activities" });
     }
   });
 

@@ -1,12 +1,15 @@
 import { 
-  users, clients, templates, proposals,
+  users, clients, templates, proposals, badges, userAchievements, userActivities,
   type User, type InsertUser,
   type Client, type InsertClient,
   type Template, type InsertTemplate,
-  type Proposal, type InsertProposal
+  type Proposal, type InsertProposal,
+  type Badge, type InsertBadge, 
+  type UserAchievement, type InsertUserAchievement,
+  type UserActivity, type InsertUserActivity
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
 
 // Extended storage interface
 export interface IStorage {
@@ -60,22 +63,34 @@ export class MemStorage implements IStorage {
   private clients: Map<number, Client>;
   private templates: Map<number, Template>;
   private proposals: Map<number, Proposal>;
+  private badges: Map<number, Badge>;
+  private userAchievements: Map<number, UserAchievement>;
+  private userActivities: Map<number, UserActivity>;
   
   private userId: number;
   private clientId: number;
   private templateId: number;
   private proposalId: number;
+  private badgeId: number;
+  private achievementId: number;
+  private activityId: number;
 
   constructor() {
     this.users = new Map();
     this.clients = new Map();
     this.templates = new Map();
     this.proposals = new Map();
+    this.badges = new Map();
+    this.userAchievements = new Map();
+    this.userActivities = new Map();
     
     this.userId = 1;
     this.clientId = 1;
     this.templateId = 1;
     this.proposalId = 1;
+    this.badgeId = 1;
+    this.achievementId = 1;
+    this.activityId = 1;
     
     // Initialize with default templates
     this.initializeTemplates();
@@ -248,6 +263,139 @@ export class MemStorage implements IStorage {
 
   async deleteProposal(id: number): Promise<boolean> {
     return this.proposals.delete(id);
+  }
+  
+  // Badge methods
+  async getBadge(id: number): Promise<Badge | undefined> {
+    return this.badges.get(id);
+  }
+
+  async getBadges(): Promise<Badge[]> {
+    return Array.from(this.badges.values());
+  }
+
+  async getBadgesByCategory(category: string): Promise<Badge[]> {
+    return Array.from(this.badges.values())
+      .filter(badge => badge.category === category);
+  }
+
+  async createBadge(badge: InsertBadge): Promise<Badge> {
+    const id = this.badgeId++;
+    const now = new Date();
+    const newBadge: Badge = { 
+      ...badge, 
+      id,
+      createdAt: now
+    };
+    this.badges.set(id, newBadge);
+    return newBadge;
+  }
+
+  // User Achievement methods
+  async getUserAchievements(userId: number): Promise<UserAchievement[]> {
+    return Array.from(this.userAchievements.values())
+      .filter(achievement => achievement.userId === userId);
+  }
+
+  async getUserAchievementWithBadges(userId: number): Promise<(UserAchievement & { badge: Badge })[]> {
+    const achievements = await this.getUserAchievements(userId);
+    return achievements.map(achievement => {
+      const badge = this.badges.get(achievement.badgeId);
+      if (!badge) throw new Error(`Badge with id ${achievement.badgeId} not found`);
+      return {
+        ...achievement,
+        badge
+      };
+    });
+  }
+
+  async createUserAchievement(achievement: InsertUserAchievement): Promise<UserAchievement> {
+    const id = this.achievementId++;
+    const now = new Date();
+    const newAchievement: UserAchievement = {
+      ...achievement,
+      id,
+      earnedAt: now
+    };
+    this.userAchievements.set(id, newAchievement);
+    return newAchievement;
+  }
+
+  async updateUserAchievement(id: number, achievement: Partial<InsertUserAchievement>): Promise<UserAchievement | undefined> {
+    const existingAchievement = this.userAchievements.get(id);
+    if (!existingAchievement) return undefined;
+
+    const updatedAchievement: UserAchievement = {
+      ...existingAchievement,
+      ...achievement
+    };
+    this.userAchievements.set(id, updatedAchievement);
+    return updatedAchievement;
+  }
+
+  // User Activity methods
+  async trackUserActivity(activity: InsertUserActivity): Promise<UserActivity> {
+    const id = this.activityId++;
+    const now = new Date();
+    const newActivity: UserActivity = {
+      ...activity,
+      id,
+      createdAt: now
+    };
+    this.userActivities.set(id, newActivity);
+    return newActivity;
+  }
+
+  async getUserActivities(userId: number): Promise<UserActivity[]> {
+    return Array.from(this.userActivities.values())
+      .filter(activity => activity.userId === userId)
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  }
+
+  // Check if a user's activity triggers any achievements and return any earned badges
+  async checkAchievements(userId: number, activityType: string): Promise<Badge[]> {
+    const earnedBadges: Badge[] = [];
+    
+    // Get all badges that could be triggered by this activity type
+    const activityBadges = await this.getBadgesByCategory(activityType);
+    
+    if (activityBadges.length === 0) return earnedBadges;
+    
+    // Count user activities by type
+    const activities = (await this.getUserActivities(userId))
+      .filter(activity => activity.activityType === activityType);
+    
+    const activityCount = activities.length;
+    
+    // Get user's current achievements
+    const userAchievements = await this.getUserAchievements(userId);
+    const achievedBadgeIds = new Set(userAchievements.map(a => a.badgeId));
+    
+    // Check each badge to see if it's newly earned
+    for (const badge of activityBadges) {
+      if (!achievedBadgeIds.has(badge.id) && activityCount >= badge.requiredCount) {
+        // User has earned this badge
+        await this.createUserAchievement({
+          userId,
+          badgeId: badge.id,
+          count: activityCount,
+          progress: activityCount
+        });
+        
+        earnedBadges.push(badge);
+      } else if (achievedBadgeIds.has(badge.id)) {
+        // User already has this badge, update the progress
+        const achievement = userAchievements.find(a => a.badgeId === badge.id);
+        if (achievement) {
+          await this.updateUserAchievement(achievement.id, {
+            count: activityCount,
+            progress: activityCount
+          });
+        }
+      }
+    }
+    
+    return earnedBadges;
   }
 }
 
@@ -503,6 +651,69 @@ export class DatabaseStorage implements IStorage {
     }
     
     return earnedBadges;
+  }
+
+  // Initialize default badges if they don't exist
+  async initializeBadges(): Promise<void> {
+    const existingBadges = await this.getBadges();
+    
+    if (existingBadges.length === 0) {
+      const defaultBadges = [
+        {
+          name: "Proposal Novice",
+          description: "Created your first proposal",
+          icon: "award",
+          category: "proposal_creation",
+          requiredCount: 1
+        },
+        {
+          name: "Proposal Expert",
+          description: "Created 5 proposals",
+          icon: "trophy",
+          category: "proposal_creation",
+          requiredCount: 5
+        },
+        {
+          name: "Proposal Master",
+          description: "Created 10 proposals",
+          icon: "star",
+          category: "proposal_creation",
+          requiredCount: 10
+        },
+        {
+          name: "Client Connector",
+          description: "Added your first client",
+          icon: "users",
+          category: "client_management",
+          requiredCount: 1
+        },
+        {
+          name: "Network Builder",
+          description: "Added 5 clients",
+          icon: "network",
+          category: "client_management",
+          requiredCount: 5
+        },
+        {
+          name: "Revenue Generator",
+          description: "Proposals worth $10,000 in total",
+          icon: "dollar-sign",
+          category: "revenue",
+          requiredCount: 1
+        },
+        {
+          name: "Deal Closer",
+          description: "First proposal approved by client",
+          icon: "check-circle",
+          category: "proposal_approved",
+          requiredCount: 1
+        }
+      ];
+
+      for (const badge of defaultBadges) {
+        await this.createBadge(badge);
+      }
+    }
   }
 
   // Initialize default templates if they don't exist

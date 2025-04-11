@@ -38,13 +38,16 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Initialize default templates in the database
+  // Initialize default templates and badges in the database
   if (storage instanceof DatabaseStorage) {
     try {
       await storage.initializeTemplates();
       log('Default templates initialized successfully');
+      
+      await storage.initializeBadges();
+      log('Default achievement badges initialized successfully');
     } catch (error) {
-      log(`Error initializing templates: ${error}`);
+      log(`Error initializing templates or badges: ${error}`);
     }
   }
   
