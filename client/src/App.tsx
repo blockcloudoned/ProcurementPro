@@ -5,11 +5,43 @@ import { Toaster } from "@/components/ui/toaster";
 import Dashboard from "@/pages/dashboard";
 import CreateProposal from "@/pages/create-proposal";
 import MyProposals from "@/pages/my-proposals";
+import ProposalDetails from "@/pages/proposal-details";
 import Templates from "@/pages/templates";
 import CrmIntegration from "@/pages/crm-integration";
+import Achievements from "@/pages/achievements";
 import NotFound from "@/pages/not-found";
 import Sidebar from "@/components/sidebar";
 import { useState } from "react";
+import { TutorialProvider } from "@/components/onboarding/tutorial-context";
+import { TutorialManager } from "@/components/onboarding/tutorial-tooltip";
+import { HelpCircle, Award } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useTutorial } from "@/components/onboarding/tutorial-context";
+
+function TutorialControls() {
+  const { startTutorial, badges, points } = useTutorial();
+  
+  return (
+    <div className="flex items-center">
+      {/* Achievement points display */}
+      <div className="flex items-center mr-4 bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">
+        <Award className="h-3.5 w-3.5 mr-1" />
+        <span>{points} points</span>
+      </div>
+      
+      {/* Tutorial start button */}
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        onClick={startTutorial}
+        className="text-neutral-500 hover:text-primary-600 hover:bg-primary-50"
+      >
+        <HelpCircle className="h-4 w-4 mr-2" />
+        <span>Tutorial</span>
+      </Button>
+    </div>
+  );
+}
 
 function Router() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -54,9 +86,12 @@ function Router() {
               </div>
             </div>
             <div className="ml-4 flex items-center md:ml-6">
+              {/* Tutorial controls */}
+              <TutorialControls />
+              
               <button 
                 type="button" 
-                className="bg-white p-1 rounded-full text-neutral-400 hover:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                className="ml-3 bg-white p-1 rounded-full text-neutral-400 hover:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
               >
                 <span className="sr-only">View notifications</span>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -90,10 +125,15 @@ function Router() {
             <Route path="/" component={Dashboard} />
             <Route path="/create-proposal" component={CreateProposal} />
             <Route path="/my-proposals" component={MyProposals} />
+            <Route path="/proposal/:id" component={ProposalDetails} />
             <Route path="/templates" component={Templates} />
             <Route path="/crm-integration" component={CrmIntegration} />
+            <Route path="/achievements" component={Achievements} />
             <Route component={NotFound} />
           </Switch>
+          
+          {/* Tutorial tooltips */}
+          <TutorialManager />
         </main>
       </div>
     </div>
@@ -103,8 +143,10 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
-      <Toaster />
+      <TutorialProvider>
+        <Router />
+        <Toaster />
+      </TutorialProvider>
     </QueryClientProvider>
   );
 }

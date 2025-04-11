@@ -1,25 +1,12 @@
-import { queryClient } from "@/lib/queryClient";
-import { apiRequest } from "@/lib/queryClient";
-import { useQuery } from "@tanstack/react-query";
-
-// Interfaces for achievement-related data
-export interface Badge {
-  id: number;
-  name: string;
-  description: string;
-  category: string;
-  icon: string;
-  requiredCount: number;
-  createdAt: Date | null;
-}
+import { apiRequest } from '@/lib/queryClient';
+import { Badge } from '@/components/onboarding/tutorial-context';
 
 export interface UserAchievement {
   id: number;
   userId: number;
   badgeId: number;
-  earnedAt: Date | null;
+  earnedAt: string;
   progress: number;
-  count: number;
   badge?: Badge;
 }
 
@@ -27,80 +14,103 @@ export interface UserActivity {
   id: number;
   userId: number;
   activityType: string;
-  data: any;
-  entityId: number | null;
-  entityType: string | null;
-  createdAt: Date | null;
+  entityId: number;
+  entityType: string;
+  data: Record<string, any>;
+  timestamp: string;
 }
 
-// Hook to get user achievements with badges
-export function useUserAchievements(userId: number) {
-  return useQuery({
-    queryKey: [`/api/users/${userId}/achievements`],
-  });
-}
-
-// Hook to get user activities
-export function useUserActivities(userId: number) {
-  return useQuery({
-    queryKey: [`/api/users/${userId}/activities`],
-  });
-}
-
-// Hook to get all available badges
-export function useBadges(category?: string) {
-  const queryKey = category 
-    ? [`/api/badges?category=${category}`]
-    : ['/api/badges'];
+/**
+ * Track user activity to potentially earn achievements
+ */
+export const trackActivity = async (
+  activityType: 'tutorial_progress' | 'proposal_creation' | 'document_export' | 'client_management' | 'template_usage' | 'crm_integration',
+  entityId: number,
+  entityType: string,
+  data: Record<string, any>
+): Promise<{ badges: Badge[] }> => {
+  try {
+    // Default user ID (in a real app this would be the currently logged in user)
+    const userId = 1;
     
-  return useQuery({
-    queryKey,
-  });
-}
+    const activity = {
+      userId,
+      activityType,
+      entityId,
+      entityType,
+      data
+    };
+    
+    // Send the activity to the server
+    const result = await apiRequest<{ badges: Badge[] }>('/api/activities', {
+      method: 'POST',
+      data: activity
+    });
+    
+    return result;
+  } catch (error) {
+    console.error('Error tracking activity:', error);
+    return { badges: [] };
+  }
+};
 
-// Function to track user activity
-export async function trackUserActivity(
-  userId: number, 
-  activityType: string, 
-  entityId?: number,
-  entityType?: string,
-  data?: any
-): Promise<UserActivity> {
-  const activity = {
-    userId,
-    activityType,
-    entityId: entityId || null,
-    entityType: entityType || null,
-    data: data || {}
-  };
-  
-  // Make the API request to record the activity
-  const result = await apiRequest<UserActivity>(
-    'POST', 
-    '/api/users/activities', 
-    activity
+/**
+ * Get all achievements for the current user
+ */
+export const getUserAchievements = async (userId = 1): Promise<UserAchievement[]> => {
+  try {
+    const achievements = await apiRequest<UserAchievement[]>(`/api/users/${userId}/achievements`);
+    return achievements;
+  } catch (error) {
+    console.error('Error fetching user achievements:', error);
+    return [];
+  }
+};
+
+/**
+ * Get all user activities
+ */
+export const getUserActivities = async (userId = 1): Promise<UserActivity[]> => {
+  try {
+    const activities = await apiRequest<UserActivity[]>(`/api/users/${userId}/activities`);
+    return activities;
+  } catch (error) {
+    console.error('Error fetching user activities:', error);
+    return [];
+  }
+};
+
+/**
+ * Track tutorial progress
+ */
+export const trackTutorialProgress = async (
+  stepId: string,
+  stepTitle: string,
+  completedSteps: string[],
+  points: number
+) => {
+  return trackActivity(
+    'tutorial_progress',
+    0, // No specific entity ID for tutorial steps
+    'tutorial_step',
+    {
+      stepId,
+      stepTitle,
+      completedSteps,
+      points
+    }
   );
-  
-  // Invalidate relevant queries to ensure data is fresh
-  queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/activities`] });
-  queryClient.invalidateQueries({ queryKey: [`/api/users/${userId}/achievements`] });
-  
-  return result;
-}
+};
 
-// Calculate progress percentage for a badge
-export function calculateBadgeProgress(
-  achievement: UserAchievement, 
-  badge?: Badge
-): number {
-  if (!badge) {
-    badge = achievement.badge;
+/**
+ * Get all available badges
+ */
+export const getAllBadges = async (): Promise<Badge[]> => {
+  try {
+    const badges = await apiRequest<Badge[]>('/api/badges');
+    return badges;
+  } catch (error) {
+    console.error('Error fetching badges:', error);
+    return [];
   }
-  
-  if (!badge || !badge.requiredCount) {
-    return 0;
-  }
-  
-  const progress = achievement.count / badge.requiredCount;
-  return Math.min(Math.round(progress * 100), 100);
-}
+};

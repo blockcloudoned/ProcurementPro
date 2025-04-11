@@ -182,7 +182,22 @@ export class MemStorage implements IStorage {
 
   async createClient(client: InsertClient): Promise<Client> {
     const id = this.clientId++;
-    const newClient: Client = { ...client, id };
+    // Ensure all nullable fields are explicitly set to null if undefined
+    const newClient: Client = {
+      id,
+      companyName: client.companyName,
+      industry: client.industry || null,
+      address: client.address || null,
+      city: client.city || null,
+      state: client.state || null,
+      postalCode: client.postalCode || null,
+      contactName: client.contactName || null,
+      contactTitle: client.contactTitle || null,
+      email: client.email || null,
+      phone: client.phone || null,
+      crmSource: client.crmSource || null,
+      crmId: client.crmId || null
+    };
     this.clients.set(id, newClient);
     return newClient;
   }
@@ -216,7 +231,14 @@ export class MemStorage implements IStorage {
 
   async createTemplate(template: InsertTemplate): Promise<Template> {
     const id = this.templateId++;
-    const newTemplate: Template = { ...template, id };
+    const newTemplate: Template = { 
+      id,
+      name: template.name,
+      category: template.category,
+      content: template.content,
+      description: template.description || null,
+      isDefault: template.isDefault || false
+    };
     this.templates.set(id, newTemplate);
     return newTemplate;
   }
@@ -239,8 +261,13 @@ export class MemStorage implements IStorage {
     const id = this.proposalId++;
     const now = new Date();
     const newProposal: Proposal = {
-      ...proposal,
       id,
+      title: proposal.title,
+      clientId: proposal.clientId,
+      templateId: proposal.templateId,
+      status: proposal.status || 'draft',
+      content: proposal.content || {},
+      amount: proposal.amount || null,
       createdAt: now,
       updatedAt: now
     };
@@ -283,8 +310,12 @@ export class MemStorage implements IStorage {
     const id = this.badgeId++;
     const now = new Date();
     const newBadge: Badge = { 
-      ...badge, 
       id,
+      name: badge.name,
+      description: badge.description,
+      icon: badge.icon,
+      category: badge.category,
+      requiredCount: badge.requiredCount || 0,
       createdAt: now
     };
     this.badges.set(id, newBadge);
@@ -313,8 +344,11 @@ export class MemStorage implements IStorage {
     const id = this.achievementId++;
     const now = new Date();
     const newAchievement: UserAchievement = {
-      ...achievement,
       id,
+      userId: achievement.userId,
+      badgeId: achievement.badgeId,
+      progress: achievement.progress || 0,
+      count: achievement.count || 0,
       earnedAt: now
     };
     this.userAchievements.set(id, newAchievement);
@@ -338,8 +372,12 @@ export class MemStorage implements IStorage {
     const id = this.activityId++;
     const now = new Date();
     const newActivity: UserActivity = {
-      ...activity,
       id,
+      userId: activity.userId, 
+      activityType: activity.activityType,
+      data: activity.data || {},
+      entityId: activity.entityId || null,
+      entityType: activity.entityType || null,
       createdAt: now
     };
     this.userActivities.set(id, newActivity);
@@ -349,7 +387,12 @@ export class MemStorage implements IStorage {
   async getUserActivities(userId: number): Promise<UserActivity[]> {
     return Array.from(this.userActivities.values())
       .filter(activity => activity.userId === userId)
-      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      .sort((a, b) => {
+        // Handle null dates by treating them as "earliest"
+        if (!a.createdAt) return -1;
+        if (!b.createdAt) return 1;
+        return a.createdAt.getTime() - b.createdAt.getTime();
+      });
   }
 
   // Check if a user's activity triggers any achievements and return any earned badges

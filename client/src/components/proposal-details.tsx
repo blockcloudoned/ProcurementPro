@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import TemplateSelection from "@/components/template-selection";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import SmartProposalEditor from "@/components/smart-proposal-editor";
 
 // Form schema for proposal details
 const proposalDetailsSchema = z.object({
@@ -31,8 +32,23 @@ interface ProposalDetailsProps {
 const ProposalDetails = ({ proposalData, updateProposalData, onNext, onPrev }: ProposalDetailsProps) => {
   const { toast } = useToast();
   
+  // Template type definition
+  interface Template {
+    id: number;
+    name: string;
+    description: string;
+    category: string;
+    content: {
+      sections: Array<{
+        title: string;
+        content: string;
+      }>;
+    };
+    isDefault: boolean;
+  }
+
   // Fetch template for the selected template ID
-  const { data: selectedTemplate, isLoading: isLoadingTemplate } = useQuery({
+  const { data: selectedTemplate, isLoading: isLoadingTemplate } = useQuery<Template>({
     queryKey: [`/api/templates/${proposalData.templateId}`],
     enabled: !!proposalData.templateId,
   });
@@ -49,11 +65,13 @@ const ProposalDetails = ({ proposalData, updateProposalData, onNext, onPrev }: P
 
   // Update form when template changes
   useEffect(() => {
-    if (selectedTemplate) {
+    if (selectedTemplate && selectedTemplate.content && Array.isArray(selectedTemplate.content.sections)) {
       // Create initial content structure based on the template sections
       const initialContent: Record<string, string> = {};
       selectedTemplate.content.sections.forEach((section: { title: string, content: string }) => {
-        initialContent[section.title] = section.content || "";
+        if (section.title) {
+          initialContent[section.title] = section.content || "";
+        }
       });
       
       form.setValue("content", initialContent);
@@ -142,31 +160,26 @@ const ProposalDetails = ({ proposalData, updateProposalData, onNext, onPrev }: P
                   <Skeleton className="h-32 w-full" />
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {selectedTemplate?.content.sections.map((section: { title: string, content: string }, index: number) => (
-                    <Card key={index}>
-                      <CardContent className="pt-4">
-                        <FormField
-                          control={form.control}
-                          name={`content.${section.title}`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{section.title}</FormLabel>
-                              <FormControl>
-                                <Textarea 
-                                  placeholder={`Enter ${section.title.toLowerCase()} content here...`} 
-                                  className="min-h-32"
-                                  {...field} 
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                <FormField
+                  control={form.control}
+                  name="content"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <div className="mb-4">
+                          {/* Smart proposal editor with keyword highlighting */}
+                          <SmartProposalEditor
+                            initialValues={field.value as Record<string, string> || {}}
+                            onChange={(values: Record<string, string>) => {
+                              field.onChange(values);
+                            }}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               )}
             </div>
           )}

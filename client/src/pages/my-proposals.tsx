@@ -43,16 +43,17 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Client, Proposal } from "../../../shared/schema";
 
 const MyProposals = () => {
   const { toast } = useToast();
   const [deleteId, setDeleteId] = useState<number | null>(null);
   
-  const { data: proposals, isLoading } = useQuery({
+  const { data: proposals = [], isLoading } = useQuery<Proposal[]>({
     queryKey: ["/api/proposals"],
   });
 
-  const { data: clients } = useQuery({
+  const { data: clients = [] } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
   });
 
@@ -102,8 +103,9 @@ const MyProposals = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatDate = (dateString: string | Date | null) => {
+    if (!dateString) return 'N/A';
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
     return date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
@@ -176,7 +178,7 @@ const MyProposals = () => {
                       <TableCell>{getClientName(proposal.clientId)}</TableCell>
                       <TableCell>{getStatusBadge(proposal.status)}</TableCell>
                       <TableCell>{proposal.amount ? `$${proposal.amount}` : "-"}</TableCell>
-                      <TableCell>{formatDate(proposal.updatedAt)}</TableCell>
+                      <TableCell>{proposal.updatedAt ? formatDate(proposal.updatedAt) : 'N/A'}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -189,9 +191,13 @@ const MyProposals = () => {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Options</DropdownMenuLabel>
-                            <DropdownMenuItem>
-                              <EyeIcon className="mr-2 h-4 w-4" />
-                              <span>View</span>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/proposal/${proposal.id}`}>
+                                <div className="flex items-center w-full">
+                                  <EyeIcon className="mr-2 h-4 w-4" />
+                                  <span>View</span>
+                                </div>
+                              </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem>
                               <PencilIcon className="mr-2 h-4 w-4" />

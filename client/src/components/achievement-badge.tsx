@@ -1,106 +1,136 @@
 import React from 'react';
-import { 
-  Award, 
-  Star, 
-  Zap, 
-  Target, 
-  CheckCircle2, 
-  Trophy, 
-  Medal,
-  Clock,
-  LucideIcon
-} from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Progress } from "@/components/ui/progress";
-import { Badge as BadgeType } from '@/lib/achievement-service';
-
-// Map of icon names to Lucide components
-const iconMap: Record<string, LucideIcon> = {
-  award: Award,
-  star: Star,
-  zap: Zap,
-  target: Target,
-  check: CheckCircle2,
-  trophy: Trophy,
-  medal: Medal,
-  clock: Clock
-};
+import { Card, CardContent } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Badge as BadgeType } from '@/components/onboarding/tutorial-context';
+import { Lock, Award, CheckCircle, Medal } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface AchievementBadgeProps {
   badge: BadgeType;
-  earned?: boolean;
-  progress?: number;
+  size?: 'sm' | 'md' | 'lg';
+  showProgress?: boolean;
 }
 
-export function AchievementBadge({ badge, earned = false, progress = 0 }: AchievementBadgeProps) {
-  // Default icon fallback
-  const IconComponent = iconMap[badge.icon.toLowerCase()] || Trophy;
+const iconMap: Record<string, React.ElementType> = {
+  '🏆': Award,
+  '📝': CheckCircle,
+  '🎭': Medal,
+};
+
+export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
+  badge,
+  size = 'md',
+  showProgress = true,
+}) => {
+  // Map the icon to a Lucide component or use the default
+  const IconComponent = iconMap[badge.icon] || Award;
   
-  // Function to determine badge styles based on category
-  const getBadgeStyles = (category: string, earned: boolean) => {
-    const baseClasses = "flex flex-col items-center justify-center rounded-full p-3";
-    
-    if (!earned) {
-      return `${baseClasses} bg-gray-100 text-gray-400 opacity-60`;
-    }
-    
-    switch (category.toLowerCase()) {
-      case 'proposals':
-        return `${baseClasses} bg-blue-100 text-blue-600`;
-      case 'clients':
-        return `${baseClasses} bg-green-100 text-green-600`;
-      case 'exports':
-        return `${baseClasses} bg-purple-100 text-purple-600`;
-      case 'achievement':
-        return `${baseClasses} bg-yellow-100 text-yellow-600`;
-      default:
-        return `${baseClasses} bg-blue-100 text-blue-600`;
-    }
-  };
+  // Determine size classes
+  const sizeClasses = {
+    sm: {
+      card: 'w-20 h-24',
+      icon: 'w-8 h-8',
+      name: 'text-xs',
+      badge: 'w-4 h-4',
+    },
+    md: {
+      card: 'w-28 h-32',
+      icon: 'w-12 h-12',
+      name: 'text-sm',
+      badge: 'w-5 h-5',
+    },
+    lg: {
+      card: 'w-36 h-40',
+      icon: 'w-16 h-16',
+      name: 'text-base',
+      badge: 'w-6 h-6',
+    },
+  }[size];
   
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex flex-col items-center m-2 relative">
-            <div className={getBadgeStyles(badge.category, earned)}>
-              <IconComponent className="h-8 w-8" />
-            </div>
-            <div className="mt-2 text-sm font-medium text-center">
-              {badge.name}
-            </div>
-            {!earned && progress > 0 && progress < 100 && (
-              <div className="w-full mt-1">
-                <Progress value={progress} className="h-1" />
-                <div className="text-xs text-gray-500 text-center mt-1">
-                  {progress}%
-                </div>
-              </div>
-            )}
-            {earned && (
-              <div className="absolute -top-1 -right-1 bg-green-500 rounded-full p-1">
-                <CheckCircle2 className="h-3 w-3 text-white" />
-              </div>
-            )}
+    <Card className={cn(
+      'relative overflow-hidden transition-all duration-300 group',
+      sizeClasses.card,
+      badge.unlocked ? 'bg-gradient-to-b from-primary-50 to-white' : 'bg-neutral-50',
+      badge.unlocked ? 'border-primary-200' : 'border-neutral-200'
+    )}>
+      <CardContent className="p-3 flex flex-col items-center justify-center h-full">
+        {/* Badge Icon */}
+        <div className={cn(
+          'rounded-full p-3 mb-2 flex items-center justify-center transition-all duration-300',
+          badge.unlocked ? 'bg-primary-100 text-primary-700' : 'bg-neutral-100 text-neutral-400'
+        )}>
+          <IconComponent className={sizeClasses.icon} />
+        </div>
+        
+        {/* Badge Name */}
+        <h4 className={cn(
+          'font-medium text-center transition-all duration-300',
+          sizeClasses.name,
+          badge.unlocked ? 'text-primary-900' : 'text-neutral-500'
+        )}>
+          {badge.name}
+        </h4>
+        
+        {/* Status indicator */}
+        {!badge.unlocked && (
+          <div className="absolute top-2 right-2">
+            <Lock className="w-3 h-3 text-neutral-400" />
           </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <div className="p-1">
-            <p className="font-semibold">{badge.name}</p>
-            <p className="text-sm">{badge.description}</p>
-            {!earned && badge.requiredCount > 0 && (
-              <p className="text-xs mt-1 text-gray-500">
-                Progress: {progress}% (Need {badge.requiredCount} to earn)
-              </p>
-            )}
+        )}
+        
+        {/* Unlocked indicator */}
+        {badge.unlocked && (
+          <div className="absolute top-2 right-2">
+            <CheckCircle className="w-3 h-3 text-green-500" />
           </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+        )}
+        
+        {/* Progress bar */}
+        {showProgress && (
+          <div className="absolute bottom-0 left-0 right-0 px-3 py-2">
+            <Progress value={badge.progress} className="h-1" />
+          </div>
+        )}
+      </CardContent>
+      
+      {/* Tooltip on hover */}
+      <div className="absolute inset-0 bg-black/80 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-2 flex flex-col justify-center items-center text-center text-xs pointer-events-none">
+        <p className="font-bold mb-1">{badge.name}</p>
+        <p className="text-[10px] leading-tight">{badge.description}</p>
+        {!badge.unlocked && (
+          <p className="mt-1 text-[10px] text-primary-300">
+            {badge.progress}% complete ({badge.requiredPoints} points needed)
+          </p>
+        )}
+      </div>
+    </Card>
   );
+};
+
+interface AchievementBadgesGridProps {
+  badges: BadgeType[];
+  size?: 'sm' | 'md' | 'lg';
+  showProgress?: boolean;
 }
+
+export const AchievementBadgesGrid: React.FC<AchievementBadgesGridProps> = ({
+  badges,
+  size = 'md',
+  showProgress = true,
+}) => {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      {badges.map((badge) => (
+        <AchievementBadge
+          key={badge.id}
+          badge={badge}
+          size={size}
+          showProgress={showProgress}
+        />
+      ))}
+    </div>
+  );
+};
+
+export default AchievementBadge;
