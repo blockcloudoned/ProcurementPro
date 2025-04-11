@@ -4,18 +4,42 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, FileText, DollarSign } from "lucide-react";
 
+interface Proposal {
+  id: number;
+  title: string;
+  clientId: number;
+  templateId: number;
+  status: string;
+  amount: string;
+  content: any;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Client {
+  id: number;
+  companyName: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  contactName?: string;
+  email?: string;
+  phone?: string;
+}
+
 const RecentProposals = () => {
-  const { data: proposals, isLoading } = useQuery({
+  const { data: proposals, isLoading } = useQuery<Proposal[]>({
     queryKey: ["/api/proposals"],
   });
 
-  const { data: clients } = useQuery({
+  const { data: clients } = useQuery<Client[]>({
     queryKey: ["/api/clients"],
   });
 
   // Get client name by ID
   const getClientName = (clientId: number) => {
-    const client = clients?.find(c => c.id === clientId);
+    const client = clients ? clients.find((c: Client) => c.id === clientId) : undefined;
     return client ? client.companyName : "Unknown Client";
   };
 
@@ -103,12 +127,12 @@ const RecentProposals = () => {
         <div className="bg-white shadow overflow-hidden sm:rounded-md p-6 text-center">
           <p className="text-neutral-500">No proposals created yet.</p>
           <Link href="/create-proposal">
-            <a className="mt-2 inline-flex items-center text-primary-600 hover:text-primary-700">
+            <div className="mt-2 inline-flex items-center text-primary-600 hover:text-primary-700 cursor-pointer">
               Create your first proposal
               <svg xmlns="http://www.w3.org/2000/svg" className="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
               </svg>
-            </a>
+            </div>
           </Link>
         </div>
       </div>
@@ -126,7 +150,7 @@ const RecentProposals = () => {
           {recentProposals.map((proposal) => (
             <li key={proposal.id}>
               <Link href={`/proposals/${proposal.id}`}>
-                <a className="block hover:bg-neutral-50">
+                <div className="block hover:bg-neutral-50 cursor-pointer">
                   <div className="px-4 py-4 sm:px-6">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium text-primary-600 truncate">
@@ -157,7 +181,7 @@ const RecentProposals = () => {
                       </div>
                     </div>
                   </div>
-                </a>
+                </div>
               </Link>
             </li>
           ))}
